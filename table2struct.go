@@ -162,7 +162,7 @@ func (t *Table2Struct) Run() error {
 		tableName := tableRealName
 		structName := tableName
 		if t.config.StructNameToHump {
-			structName = t.camelCase(structName)
+			structName = t.camelCase(structName, false)
 		}
 
 		switch len(tableName) {
@@ -174,7 +174,7 @@ func (t *Table2Struct) Run() error {
 			tableName = strings.ToUpper(tableName[0:1]) + tableName[1:]
 		}
 		depth := 1
-		structContent += "type " + structName + " struct {\n"
+		structContent += "type " + t.camelCase(structName, false) + " struct {\n"
 		for _, v := range item {
 			//structContent += tab(depth) + v.ColumnName + " " + v.Type + " " + v.Json + "\n"
 			// 字段注释
@@ -280,7 +280,7 @@ func (t *Table2Struct) getColumns(table ...string) (tableColumns map[string][]co
 		//col.Json = strings.ToLower(col.ColumnName)
 		col.Tag = col.ColumnName
 		col.ColumnComment = col.ColumnComment
-		col.ColumnName = t.camelCase(col.ColumnName)
+		col.ColumnName = t.camelCase(col.ColumnName, false)
 		col.Type = typeForMysqlToGo[col.Type]
 		jsonTag := col.Tag
 		// 字段首字母本身大写, 是否需要删除tag
@@ -295,7 +295,7 @@ func (t *Table2Struct) getColumns(table ...string) (tableColumns map[string][]co
 			}
 
 			if t.config.JsonTagToHump {
-				jsonTag = t.camelCase(jsonTag)
+				jsonTag = t.camelCase(jsonTag, true)
 			}
 
 			//if col.Nullable == "YES" {
@@ -321,15 +321,20 @@ func (t *Table2Struct) getColumns(table ...string) (tableColumns map[string][]co
 	return
 }
 
-func (t *Table2Struct) camelCase(str string) string {
+func (t *Table2Struct) camelCase(str string, firstLower bool) string {
 	// 是否有表前缀, 设置了就先去除表前缀
 	if t.prefix != "" {
 		str = strings.Replace(str, t.prefix, "", 1)
 	}
+	str = strings.ToLower(str)
 	var text string
 	//for _, p := range strings.Split(name, "_") {
-	for _, p := range strings.Split(str, "_") {
+	for index, p := range strings.Split(str, "_") {
 		// 字段首字母大写的同时, 是否要把其他字母转换为小写
+		if firstLower && index == 0 {
+			text += strings.ToLower(p)
+			continue
+		}
 		switch len(p) {
 		case 0:
 		case 1:
